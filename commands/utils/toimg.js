@@ -15,17 +15,30 @@ export default {
             const isAnimated = q.isAnimated || q.msg?.isAnimated
 
             if (isAnimated) {
-                // Llamamos a nuestra nueva función
-                const out = await webp2mp4(media)
-                await client.sendMessage(m.chat, { video: { url: out }, caption: 'ꕥ *Aquí tienes tu video ฅ^•ﻌ•^ฅ*' }, { quoted: m })
+                // Intentamos convertir a video
+                try {
+                    // Usamos una API directa para evitar problemas de memoria en el contenedor
+                    let videoUrl = `https://api.lolhuman.xyz/api/convert/webptomp4?apikey=GataDios&img=${encodeURIComponent(media.toString('base64'))}`
+                    
+                    await client.sendMessage(m.chat, { 
+                        video: { url: videoUrl }, 
+                        caption: 'ꕥ *Aquí tienes tu video ฅ^•ﻌ•^ฅ*' 
+                    }, { quoted: m })
+                    await m.react('✔️')
+                } catch (err) {
+                    // Si el video falla, enviamos la imagen (fallback)
+                    await client.sendMessage(m.chat, { image: media, caption: '⚠️ *No pude procesar el video, pero aquí tienes la imagen:*' }, { quoted: m })
+                    await m.react('✔️')
+                }
             } else {
+                // Sticker estático
                 await client.sendMessage(m.chat, { image: media, caption: 'ꕥ *Aquí tienes tu imagen ฅ^•ﻌ•^ฅ*' }, { quoted: m })
+                await m.react('✔️')
             }
-            await m.react('✔️')
         } catch (e) {
             console.error(e)
             await m.react('✖️')
-            client.reply(m.chat, `《✧》 Error: No se pudo convertir este sticker animado.`, m)
+            client.reply(m.chat, `《✧》 Error crítico al descargar el sticker.`, m)
         }
     }
 }
