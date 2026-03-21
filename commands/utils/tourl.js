@@ -1,4 +1,4 @@
-import axios from 'axios'
+import fetch from 'node-fetch'
 import FormData from 'form-data'
 
 function formatBytes(bytes) {
@@ -8,85 +8,34 @@ function formatBytes(bytes) {
   return `${(bytes / 1024 ** i).toFixed(2)} ${sizes[i]}`
 }
 
-function generateUniqueFilename(mime) {
-  const ext = mime.split('/')[1] || 'bin'
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  let id = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-  return `${id}.${ext}`
-}
-
-async function uploadToCatbox(buffer, mime) {
-  const form = new FormData()
-  form.append('reqtype', 'fileupload')
-  form.append('fileToUpload', buffer, { filename: generateUniqueFilename(mime) })
-
-  const res = await axios.post('https://catbox.moe/user/api.php', form, {
-    headers: form.getHeaders(),
-    maxContentLength: Infinity,
-    maxBodyLength: Infinity
-  })
-
-  if (!res.data || typeof res.data !== 'string' || !res.data.startsWith('https://')) {
-    throw new Error('Respuesta inválida de Catbox')
-  }
-  return res.data.trim()
-}
-
-async function uploadToAdonix(buffer, mime) {
-  const filename = generateUniqueFilename(mime)
-  const base64Content = buffer.toString('base64')
-
-  const res = await axios.post('https://adofiles.i11.eu/api/upload', {
-    filename: filename,
-    content: base64Content,
-    apiKey: 'Ado&'
-  }, {
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Api-Key': 'Ado&'
-    }
-  })
-
-  if (res.status !== 201 || !res.data.files || res.data.files.length === 0) {
-    throw new Error('Respuesta inválida de AdonixFiles')
-  }
-
-  return res.data.files[0].publicUrl
-}
-
 export default {
   command: ['tourl'],
   category: 'utils',
-  run: async (client, m, args, usedprefix, command, text) => {
-    const q = m.quoted || m
-    const mime = (q.msg || q).mimetype || ''
-    if (!mime) {
-      return client.reply(
-        m.chat,
-        `《✧》 Por favor, responde a una imagen o video con el comando *${usedprefix + command}* para convertirlo en una URL.`,
-        m
-      )
-    }
-
+  run: async (client, m, args, usedPrefix, command) => {
     try {
-      const media = await q.download()
-
-      const [catboxLink, adonixLink] = await Promise.all([
-        uploadToCatbox(media, mime),
-        uploadToAdonix(media, mime)
-      ])
-
+      const q = m.quoted || m
+      const mime = q.mimetype || q.msg?.mimetype || ''
+      if (!mime) return m.reply(`《✧》 Por favor, responde a una imagen o video con el comando *${usedprefix + command}* para convertirlo en una URL.`)
+      if (!/image\/(png|jpe?g|gif)|video\/mp4/.test(mime)) {
+        return m.reply(`✎ El formato *${mime}* no es compatible`)
+      }
+      const buffer = await q.download()
+      const url = await uploadToUguu(buffer, mime)
+      if (!url) return m.reply('✎ No se pudo *subir* la imagen')
       const userName = global.db.data.users[m.sender]?.name || 'Usuario'
-      const upload = `✎ *Upload Success*\n\n` +
-        `ׅ✿ *URL [1] ›* ${catboxLink}\n` +
-        `ׅ✿ *URL [2]›* ${adonixLink}\n` +
-        `ׅ✿ *Peso ›* ${formatBytes(media.length)}\n` +
-        `ׅ✿ *Solicitado por ›* ${userName}\n\n${dev}`
-
-      await client.reply(m.chat, upload, m)
-    } catch (e) {
-      console.error(e)
-      await m.reply(`《✧》 Fail: ${e.message}`)
+      const peso = formatBytes(buffer.length)
+      const msg = `✎ *Upload To Uguu*\n\n> ✿ *Link ›* ${url}\n> ✿ *Peso ›* ${peso}\n> ✿ *Solicitado por ›* ${userName}\n\n${dev}`
+      return m.reply(msg)
+    } catch (err) {
+      return m.reply(`《✧》 Fail: ${e.message}`)
     }
-  }
+  },
+}
+
+async function uploadToUguu(buffer, mime) {
+  const body = new FormData()
+  body.append('files[]', buffer, `file.${mime.split('/')[1]}`)
+  const res = await fetch('https://uguu.se/upload.php', { method: 'POST', body, headers: body.getHeaders() })
+  const json = await res.json()
+  return json.files?.[0]?.url
 }
