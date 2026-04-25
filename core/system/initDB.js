@@ -11,8 +11,8 @@ function initDB(m, client) {
   settings.nameid ??= "❤️̶۫̄͟Ⓢ︎𓏲S͟u͟m͟m͟i͟𓍲̈͜𝗨̴ᥣ̥𝗍̈rᥲ̄𓊓̵̬𝐁o̸t̸❤️̶۫̄͟─"
   settings.type ??= 'Owner'
   settings.link ??= ''
-  settings.banner ??= 'https://files.catbox.moe/s9og6w.jpeg'
-  settings.icon ??= 'https://files.catbox.moe/s9og6w.jpeg'
+  settings.banner ??= 'https://files.catbox.moe/ccgzlp.jpeg'
+  settings.icon ??= 'https://files.catbox.moe/ccgzlp.jpeg'
   settings.currency ??= 'Yenes'
   settings.namebot ??= 'sumi'
   settings.botname ??= 'sumi bot'  
