@@ -1,81 +1,96 @@
-import fetch from 'node-fetch'
 import yts from 'yt-search'
+import fetch from 'node-fetch'
+import { getBuffer } from '../../core/message.js'
+
+const isYTUrl = (url) => /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/i.test(url)
+
+async function getVideoInfo(query, videoMatch) {
+  const search = await yts(query)
+  if (!search.all.length) return null
+  const videoInfo = videoMatch ? search.videos.find(v => v.videoId === videoMatch[1]) || search.all[0] : search.all[0]
+  return videoInfo || null
+}
 
 export default {
-  command: ['play', 'play2', 'yta', 'ytmp3', 'ytv', 'ytmp4', 'playaudio', 'mp4'],
+  command: ['play', 'play2', 'mp3', 'ytmp3', 'ytv', 'mp4', 'ytmp4'],
   category: 'downloader',
-  run: async (client, m, { args, command, text }) => {
-    let query = text || args.join(" ")
-    
-    if (!query || query.trim() === "") {
-      return m.reply(`✨ *Por favor, ingresa el nombre o link de YouTube.*`)
-    }
-
+  run: async (client, m, args, usedPrefix, command) => {
     try {
-      await m.react('🌸')
-
-      const videoMatch = query.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/)
-      const searchQuery = videoMatch ? 'https://youtu.be/' + videoMatch[1] : query
-      const search = await yts(searchQuery)
-      const result = videoMatch ? search.videos.find(v => v.videoId === videoMatch[1]) || search.all[0] : search.all[0]
-
-      if (!result) return m.reply('🌈 No se encontraron resultados.')
-
-      const { title, thumbnail, timestamp, views, url, author } = result
-      const isAudio = /play$|yta|ytmp3|playaudio/i.test(command)
-
-      const info = `
-🌸 *𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 𝙳𝚘𝚠𝚗𝚕𝚘𝚊𝚍𝚎𝚛* 🌸
-─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───
-
-🌈 *𝚃𝙸𝚃𝚄𝙻𝙾:* ${title}
-📺 *𝙲𝙰𝙽𝙰𝙻:* ${author.name}
-⏳ *𝙳𝚄𝚁𝙰𝙲𝙸𝙾𝙽:* ${timestamp}
-👁️ *𝚅𝙸𝚂𝚃𝙰𝚂:* ${views.toLocaleString()}
-🔗 *𝙻𝙸𝙽𝙺:* ${url}
-📂 *𝚃𝙸𝙿𝙾:* ${isAudio ? 'Audio (MP3)' : 'Video (MP4)'}
-
-─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───
-> ✨ *¡𝐏𝐫𝐨𝐜𝐞𝐬𝐚𝐧𝐝𝐨 𝐭𝐮 𝐚𝐫𝐜𝐡𝐢𝐯𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚!*`.trim()
-
-      await client.sendMessage(m.chat, { 
-        image: { url: thumbnail }, 
-        caption: info,
-        footer: "🌸 𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 🌸" 
-      }, { quoted: m })
-
-      if (isAudio) {
-        const res = await fetch(`https://api.delirius.store/download/ytmp3v2?url=${encodeURIComponent(url)}`)
-        const json = await res.json()
-        
-        if (!json.success || !json.data?.download) throw new Error('No se pudo obtener el link de descarga (MP3).')
-
-        await client.sendMessage(m.chat, { 
-          audio: { url: json.data.download }, 
-          fileName: `${title}.mp3`, 
-          mimetype: 'audio/mpeg' 
-        }, { quoted: m })
-
-      } else {
-        const res = await fetch(`https://api.delirius.store/download/ytmp4?url=${encodeURIComponent(url)}`)
-        const json = await res.json()
-        
-        if (!json.status || !json.data?.download) throw new Error('No se pudo obtener el link de descarga (MP4).')
-
-        await client.sendMessage(m.chat, { 
-          video: { url: json.data.download }, 
-          caption: `🌸 *Aquí tienes tu video*\n> ✨ ${title}`,
-          mimetype: 'video/mp4',
-          fileName: `${title}.mp4` 
-        }, { quoted: m })
+      if (!args[0]) {
+        return m.reply('《✧》Por favor, menciona el nombre o URL del video que deseas descargar')
       }
 
-      await m.react('💖')
+      const text = args.join(' ')
+      const videoMatch = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/)
+      const query = videoMatch ? 'https://youtu.be/' + videoMatch[1] : text
+      
+      let url, title, thumbBuffer, videoInfo
+      
+      try {
+        videoInfo = await getVideoInfo(query, videoMatch)
+        if (videoInfo) {
+          url = videoInfo.url
+          title = videoInfo.title
+          thumbBuffer = await getBuffer(videoInfo.image)
+          const vistas = (videoInfo.views || 0).toLocaleString()
+          const canal = videoInfo.author?.name || 'Desconocido'
+          
+          const infoMessage = `➩ Descargando › ${title}\n\n> ❖ Canal › *${canal}*\n> ⴵ Duración › *${videoInfo.timestamp || 'Desconocido'}*\n> ❀ Vistas › *${vistas}*\n> ❒ Enlace › *${url}*`
+          await client.sendMessage(m.chat, { image: thumbBuffer, caption: infoMessage }, { quoted: m })
+        }
+      } catch (err) {}
+
+      const isVideo = /play2|ytv|mp4|ytmp4/i.test(command)
+
+      if (isVideo) {
+        // Lógica de Video
+        const videoData = await getVideoFromApis(url)
+        if (!videoData?.url) return m.reply('《✧》 No se pudo descargar el *video*, intenta más tarde.')
+        const videoBuffer = await getBuffer(videoData.url)
+        await client.sendMessage(m.chat, { video: videoBuffer, caption: `✨ ${title}`, mimetype: 'video/mp4' }, { quoted: m })
+      } else {
+        // Lógica de Audio
+        const audioData = await getAudioFromApis(url)
+        if (!audioData?.url) return m.reply('《✧》 No se pudo descargar el *audio*, intenta más tarde.')
+        const audioBuffer = await getBuffer(audioData.url)
+        await client.sendMessage(m.chat, { audio: audioBuffer, fileName: `${title || 'audio'}.mp3`, mimetype: 'audio/mpeg' }, { quoted: m })
+      }
 
     } catch (e) {
-      console.error(e)
-      await m.react('❌')
-      await m.reply(`> Ocurrió un error inesperado.\n> [Error: *${e.message || e}*]`)
+      await m.reply(`> Error crítico: *${e.message}*`)
     }
   }
+}
+
+async function getAudioFromApis(url) {
+  const apis = [
+    { api: 'Delirius', endpoint: `https://api.delirius.store/download/ytmp3v2?url=${encodeURIComponent(url)}`, extractor: res => res.success ? res.data.download : null },
+    { api: 'Axi', endpoint: `${global.APIs.axi.url}/down/ytaudio?url=${encodeURIComponent(url)}`, extractor: res => res?.resultado?.url_dl },    
+    { api: 'Stellar', endpoint: `${global.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp3&key=${global.APIs.stellar.key}`, extractor: res => res.result?.download }
+  ]
+
+  for (const { api, endpoint, extractor } of apis) {
+    try {
+      const res = await fetch(endpoint).then(r => r.json())
+      const link = extractor(res)
+      if (link) return { url: link, api }
+    } catch (e) {}
+  }
+  return null
+}
+
+async function getVideoFromApis(url) {
+  const apis = [
+    { api: 'Delirius', endpoint: `https://api.delirius.store/download/ytmp4?url=${encodeURIComponent(url)}`, extractor: res => res.status ? res.data.download : null },
+    { api: 'Stellar', endpoint: `${global.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp4&key=${global.APIs.stellar.key}`, extractor: res => res.result?.download }
+  ]
+
+  for (const { api, endpoint, extractor } of apis) {
+    try {
+      const res = await fetch(endpoint).then(r => r.json())
+      const link = extractor(res)
+      if (link) return { url: link, api }
+    } catch (e) {}
+  }
+  return null
 }
