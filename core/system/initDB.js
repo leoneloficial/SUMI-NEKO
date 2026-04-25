@@ -7,7 +7,7 @@ function initDB(m, client) {
   settings.self ??= false
   settings.prefix ??= ['/', '!', '.', '#']
   settings.commandsejecut ??= isNumber(settings.commandsejecut) ? settings.commandsejecut : 0
-  settings.id ??= '120363401404146384@newsletter'
+  settings.id ??= '120363324350463849@newsletter'
   settings.nameid ??= "'ೃ࿔ ყµҡเ ωαɓσƭ'ร - σƒƒเ૮เαℓ ૮ɦαɳɳεℓ .ೃ࿐"
   settings.type ??= 'Owner'
   settings.link ??= 'https://api.yuki-wabot.my.id'
