@@ -30,7 +30,7 @@ export default {
       const prefix = botSettings.prefix;
       const link = botSettings.link || links.api.channel;
       const isOficialBot = botId === global.client.user.id.split(':')[0] + '@s.whatsapp.net';
-      const botType = isOficialBot ? 'Principal/Owner' : 'Sub Bot';
+      const botType = isOficialBot ? '*Principal🅥*' : '*Sub Bot🅑*';
       const users = Object.keys(global.db.data.users).length;
       const device = getDevice(m.key.id);
       const sender = global.db.data.users[m.sender].name;
@@ -99,7 +99,7 @@ export default {
               },
               externalAdReply: {
                 title: botname,
-                body: `${namebot}, mᥲძᥱ ᥕі𝗍һ ᑲᥡ ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜`,
+                body: `${namebot}, mᥲძᥱ ᥕі𝗍һ ᑲᥡ 𓆩‌۫᷼ ִֶָღܾ݉͢𝕷͢𝖊𝖔፝֟፝֟፝֟፝֟፝֟፝֟𝖓𝖊𝖑ܾ݉ ִֶָ𓆪‌‹࣭݊𓂃ⷪ ִֶָ ᷫ‹ ⷭ.࣭𓆩‌۫᷼Ⴕ۫͜𓆪‌`,
                 showAdAttribution: false,
                 thumbnailUrl: banner,
                 mediaType: 1,
