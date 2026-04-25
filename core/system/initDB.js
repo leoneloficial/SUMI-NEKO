@@ -12,7 +12,7 @@ function initDB(m, client) {
   settings.type ??= 'Owner'
   settings.link ??= 'https://api.yuki-wabot.my.id'
   settings.banner ??= 'https://cdn.yuki-wabot.my.id/files/tCVD.jpeg'
-  settings.icon ??= 'https://cdn.yuki-wabot.my.id/files/PJDp.jpeg'
+  settings.icon ??= 'https://files.catbox.moe/s9og6w.jpeg'
   settings.currency ??= 'Yenes'
   settings.namebot ??= 'sumi'
   settings.botname ??= 'sumi bot'  
