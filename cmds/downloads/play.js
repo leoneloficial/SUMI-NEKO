@@ -1,21 +1,28 @@
-import fetch from "node-fetch"
+import fetch from 'node-fetch'
 import yts from 'yt-search'
 
-const handler = async (m, { conn, text, usedPrefix, command }) => {
+export default {
+  command: ['play', 'yta', 'ytmp3', 'play2', 'ytv', 'ytmp4', 'playaudio', 'mp4'],
+  category: 'downloader',
+  run: async (client, m, { text, command }) => {
+    if (!text) {
+      return m.reply(`《✧》 Por favor, ingresa el nombre o link de YouTube.`)
+    }
+
     try {
-        if (!text.trim()) return conn.reply(m.chat, `✨ *Por favor, ingresa el nombre o link de YouTube.*`, m)
-        await m.react('🌸')
+      await m.react('🌸')
 
-        const videoMatch = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/)
-        const query = videoMatch ? 'https://youtu.be/' + videoMatch[1] : text
-        const search = await yts(query)
-        const result = videoMatch ? search.videos.find(v => v.videoId === videoMatch[1]) || search.all[0] : search.all[0]
+      // Lógica de búsqueda
+      const videoMatch = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/)
+      const query = videoMatch ? 'https://youtu.be/' + videoMatch[1] : text
+      const search = await yts(query)
+      const result = videoMatch ? search.videos.find(v => v.videoId === videoMatch[1]) || search.all[0] : search.all[0]
 
-        if (!result) throw '🌈 No se encontraron resultados.'
+      if (!result) return m.reply('《✧》 No se encontraron resultados.')
 
-        const { title, thumbnail, timestamp, views, url, author } = result
+      const { title, thumbnail, timestamp, views, url, author } = result
 
-        const info = `
+      const info = `
 🌸 *𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 𝙳𝚘𝚠𝚗𝚕𝚘𝚊𝚍𝚎𝚛* 🌸
 ─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───
 
@@ -28,51 +35,79 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
 ─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───
 > ✨ *¡𝐏𝐫𝐨𝐜𝐞𝐬𝐚𝐧𝐝𝐨 𝐭𝐮 𝐚𝐫𝐜𝐡𝐢𝐯𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚!*`.trim()
 
-        const thumb = (await conn.getFile(thumbnail)).data
-        await conn.sendMessage(m.chat, { 
-            image: thumb, 
-            caption: info,
-            footer: "🌸 𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 🌸" 
+      // Enviar miniatura e info
+      await client.sendMessage(m.chat, { 
+        image: { url: thumbnail }, 
+        caption: info,
+        footer: "🌸 𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 🌸" 
+      }, { quoted: m })
+
+      const isAudio = /play|yta|ytmp3|playaudio/i.test(command)
+      
+      // Intentar descargar con las APIs
+      const data = await getYouTubeMedia(url, isAudio)
+      
+      if (!data || !data.download) {
+        throw new Error('No se pudo obtener el enlace de descarga.')
+      }
+
+      if (isAudio) {
+        await client.sendMessage(m.chat, { 
+          audio: { url: data.download }, 
+          fileName: `${title}.mp3`, 
+          mimetype: 'audio/mpeg' 
         }, { quoted: m })
+      } else {
+        await client.sendMessage(m.chat, { 
+          video: { url: data.download }, 
+          caption: `🌸 *Aquí tienes tu video*\n> ✨ ${title}`,
+          mimetype: 'video/mp4',
+          fileName: `${title}.mp4` 
+        }, { quoted: m })
+      }
 
-        const isAudio = /play|yta|ytmp3|playaudio/i.test(command)
-
-       
-        const headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
-        }
-
-        if (isAudio) {
-            const res = await fetch(`https://api.delirius.store/download/ytmp3v2?url=${encodeURIComponent(url)}`, { headers })
-            const json = await res.json()
-
-            if (!json.success || !json.data?.download) throw '⚠️ El servidor rechazó la descarga (403). Intenta más tarde.'
-
-            await conn.sendMessage(m.chat, { 
-                audio: { url: json.data.download }, 
-                fileName: `${title}.mp3`, 
-                mimetype: 'audio/mpeg' 
-            }, { quoted: m })
-
-        } else {
-            const res = await fetch(`https://api.delirius.store/download/ytmp4?url=${encodeURIComponent(url)}`, { headers })
-            const json = await res.json()
-
-            if (!json.status || !json.data?.download) throw '⚠️ El servidor rechazó la descarga (403). Intenta más tarde.'
-
-            await conn.sendFile(m.chat, json.data.download, `${title}.mp4`, `🌸 *Aquí tienes tu video*\n> ✨ ${title}`, m)
-        }
-
-        await m.react('💖')
+      await m.react('💖')
 
     } catch (e) {
-        console.error(e)
-        await m.react('❌')
-        return conn.reply(m.chat, `❌ *Error:* ${e}`, m)
+      console.error(e)
+      await m.react('❌')
+      await m.reply(`> Ocurrió un error inesperado.\n> [Error: *${e.message}*]`)
     }
+  }
 }
 
-handler.command = /^(play|yta|ytmp3|play2|ytv|ytmp4|playaudio|mp4)$/i
-handler.group = false
+async function getYouTubeMedia(url, isAudio) {
+  // Definición de APIs estilo el código de Twitter
+  const apis = [
+    { 
+      endpoint: `https://api.delirius.store/download/${isAudio ? 'ytmp3v2' : 'ytmp4'}?url=${encodeURIComponent(url)}`, 
+      extractor: res => {
+        if (isAudio) {
+          return res.success && res.data?.download ? { download: res.data.download } : null
+        } else {
+          return res.status && res.data?.download ? { download: res.data.download } : null
+        }
+      }
+    },
+    // Puedes agregar más APIs de respaldo aquí siguiendo el mismo formato
+    {
+      endpoint: `https://api.zenkey.my.id/api/download/ytmp3?url=${encodeURIComponent(url)}&apikey=zenkey`, // Ejemplo
+      extractor: res => res.status && res.result?.download?.url ? { download: res.result.download.url } : null
+    }
+  ]
 
-export default handler
+  for (const { endpoint, extractor } of apis) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      })
+      const res = await response.json()
+      const result = extractor(res)
+      if (result) return result
+    } catch (err) {
+      console.log(`Error con API: ${endpoint}`)
+    }
+    await new Promise(r => setTimeout(r, 500))
+  }
+  return null
+}
