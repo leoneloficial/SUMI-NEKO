@@ -1,80 +1,78 @@
+import fetch from "node-fetch"
 import yts from 'yt-search'
-import fetch from 'node-fetch'
-import { getBuffer } from '../../core/message.js'
 
-const isYTUrl = (url) => /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/i.test(url)
-async function getVideoInfo(query, videoMatch) {
-  const search = await yts(query)
-  if (!search.all.length) return null
-  const videoInfo = videoMatch ? search.videos.find(v => v.videoId === videoMatch[1]) || search.all[0] : search.all[0]
-  return videoInfo || null
-}
-
-export default {
-  command: ['play', 'mp3', 'ytmp3', 'ytaudio', 'playaudio'],
-  category: 'downloader',
-  run: async (client, m, args, usedPrefix, command) => {
+const handler = async (m, { conn, text, usedPrefix, command }) => {
     try {
-      if (!args[0]) {
-        return m.reply('《✧》Por favor, menciona el nombre o URL del video que deseas descargar')
-      }
-      const text = args.join(' ')
-      const videoMatch = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/)
-      const query = videoMatch ? 'https://youtu.be/' + videoMatch[1] : text
-      let url = query, title = null, thumbBuffer = null
-      try {
-        const videoInfo = await getVideoInfo(query, videoMatch)
-        if (videoInfo) {
-          url = videoInfo.url
-          title = videoInfo.title
-          thumbBuffer = await getBuffer(videoInfo.image)
-          const vistas = (videoInfo.views || 0).toLocaleString()
-          const canal = videoInfo.author?.name || 'Desconocido'
-          const infoMessage = `➩ Descargando › ${title}
+        if (!text.trim()) return conn.reply(m.chat, `✨ *Por favor, ingresa el nombre o link de YouTube.*`, m)
+        await m.react('🌸')
 
-> ❖ Canal › *${canal}*
-> ⴵ Duración › *${videoInfo.timestamp || 'Desconocido'}*
-> ❀ Vistas › *${vistas}*
-> ✩ Publicado › *${videoInfo.ago || 'Desconocido'}*
-> ❒ Enlace › *${url}*`
-          await client.sendMessage(m.chat, { image: thumbBuffer, caption: infoMessage }, { quoted: m })
+        const videoMatch = text.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/|v\/))([a-zA-Z0-9_-]{11})/)
+        const query = videoMatch ? 'https://youtu.be/' + videoMatch[1] : text
+        const search = await yts(query)
+        const result = videoMatch ? search.videos.find(v => v.videoId === videoMatch[1]) || search.all[0] : search.all[0]
+
+        if (!result) throw '🌈 No se encontraron resultados.'
+
+        const { title, thumbnail, timestamp, views, url, author } = result
+
+        const info = `
+🌸 *𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 𝙳𝚘𝚠𝚗𝚕𝚘𝚊𝚍𝚎𝚛* 🌸
+─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───
+
+🌈 *𝚃𝙸𝚃𝚄𝙻𝙾:* ${title}
+📺 *𝙲𝙰𝙽𝙰𝙻:* ${author.name}
+⏳ *𝙳𝚄𝚁𝙰𝙲𝙸𝙾𝙽:* ${timestamp}
+👁️ *𝚅𝙸𝚂𝚃𝙰𝚂:* ${views.toLocaleString()}
+🔗 *𝙻𝙸𝙽𝙺:* ${url}
+
+─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───
+> ✨ *¡𝐏𝐫𝐨𝐜𝐞𝐬𝐚𝐧𝐝𝐨 𝐭𝐮 𝐚𝐫𝐜𝐡𝐢𝐯𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚!*`.trim()
+
+        const thumb = (await conn.getFile(thumbnail)).data
+        await conn.sendMessage(m.chat, { 
+            image: thumb, 
+            caption: info,
+            footer: "🌸 𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 🌸" 
+        }, { quoted: m })
+
+        const isAudio = /play|yta|ytmp3|playaudio/i.test(command)
+
+       
+        const headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
         }
-      } catch (err) {
-      }
-      const audio = await getAudioFromApis(url)
-      if (!audio?.url) {
-        return m.reply('《✧》 No se pudo descargar el *audio*, intenta más tarde.')
-      }
-      const audioBuffer = await getBuffer(audio.url)
-      await client.sendMessage(m.chat, { audio: audioBuffer, fileName: `${title || 'audio'}.mp3`, mimetype: 'audio/mpeg' }, { quoted: m })
+
+        if (isAudio) {
+            const res = await fetch(`https://api.delirius.store/download/ytmp3v2?url=${encodeURIComponent(url)}`, { headers })
+            const json = await res.json()
+
+            if (!json.success || !json.data?.download) throw '⚠️ El servidor rechazó la descarga (403). Intenta más tarde.'
+
+            await conn.sendMessage(m.chat, { 
+                audio: { url: json.data.download }, 
+                fileName: `${title}.mp3`, 
+                mimetype: 'audio/mpeg' 
+            }, { quoted: m })
+
+        } else {
+            const res = await fetch(`https://api.delirius.store/download/ytmp4?url=${encodeURIComponent(url)}`, { headers })
+            const json = await res.json()
+
+            if (!json.status || !json.data?.download) throw '⚠️ El servidor rechazó la descarga (403). Intenta más tarde.'
+
+            await conn.sendFile(m.chat, json.data.download, `${title}.mp4`, `🌸 *Aquí tienes tu video*\n> ✨ ${title}`, m)
+        }
+
+        await m.react('💖')
+
     } catch (e) {
-      await m.reply(`> An unexpected error occurred while executing command *${usedPrefix + command}*. Please try again or contact support if the issue persists.\n> [Error: *${e.message}*]`)
+        console.error(e)
+        await m.react('❌')
+        return conn.reply(m.chat, `❌ *Error:* ${e}`, m)
     }
-  }
 }
 
-async function getAudioFromApis(url) {
-  const apis = [
-    { api: 'Axi', endpoint: `${global.APIs.axi.url}/down/ytaudio?url=${encodeURIComponent(url)}`, extractor: res => res?.resultado?.url_dl },    
-    { api: 'Ootaizumi', endpoint: `${global.APIs.ootaizumi.url}/downloader/youtube/play?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download },
-    { api: 'Vreden', endpoint: `${global.APIs.vreden.url}/api/v1/download/youtube/audio?url=${encodeURIComponent(url)}&quality=256`, extractor: res => res.result?.download?.url },
-    { api: 'Stellar', endpoint: `${global.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp3&key=${global.APIs.stellar.key}`, extractor: res => res.result?.download },
-    { api: 'Ootaizumi v2', endpoint: `${global.APIs.ootaizumi.url}/downloader/youtube?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.download },
-    { api: 'Vreden v2', endpoint: `${global.APIs.vreden.url}/api/v1/download/play/audio?query=${encodeURIComponent(url)}`, extractor: res => res.result?.download?.url },
-    { api: 'Nekolabs', endpoint: `${global.APIs.nekolabs.url}/downloader/youtube/v1?url=${encodeURIComponent(url)}&format=mp3`, extractor: res => res.result?.downloadUrl },
-    { api: 'Nekolabs v2', endpoint: `${global.APIs.nekolabs.url}/downloader/youtube/play/v1?q=${encodeURIComponent(url)}`, extractor: res => res.result?.downloadUrl }
-  ]
+handler.command = /^(play|yta|ytmp3|play2|ytv|ytmp4|playaudio|mp4)$/i
+handler.group = false
 
-  for (const { api, endpoint, extractor } of apis) {
-    try {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 10000)
-      const res = await fetch(endpoint, { signal: controller.signal }).then(r => r.json())
-      clearTimeout(timeout)
-      const link = extractor(res)
-      if (link) return { url: link, api }
-    } catch (e) {}
-    await new Promise(resolve => setTimeout(resolve, 500))
-  }
-  return null
-}
+export default handler
