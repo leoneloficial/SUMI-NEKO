@@ -49,7 +49,7 @@ export default {
       minute: '2-digit'
     }).replace(/^./, m => m.toUpperCase())
     const isOficialBot = botId === global.client.user.id.split(':')[0] + "@s.whatsapp.net"
-    const botType = isOficialBot ? 'Principal' : 'Sub Bot'
+    const botType = isOficialBot ? '*Principal🅥*' : '*Sub Bot🅑*'
     try {
     const message = `✐ Información del bot *${botname}!*
 
