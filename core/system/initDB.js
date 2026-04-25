@@ -14,8 +14,8 @@ function initDB(m, client) {
   settings.banner ??= 'https://cdn.yuki-wabot.my.id/files/tCVD.jpeg'
   settings.icon ??= 'https://cdn.yuki-wabot.my.id/files/PJDp.jpeg'
   settings.currency ??= 'Yenes'
-  settings.namebot ??= 'Yuki'
-  settings.botname ??= 'Yuki Suou'  
+  settings.namebot ??= 'sumi'
+  settings.botname ??= 'sumi bot'  
   settings.owner ??= ''
 
   const user = global.db.data.users[m.sender] ||= {}
