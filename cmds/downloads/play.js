@@ -43,17 +43,26 @@ export default {
       const isVideo = /play2|ytv|mp4|ytmp4/i.test(command)
 
       if (isVideo) {
-        // Lógica de Video
         const videoData = await getVideoFromApis(url)
-        if (!videoData?.url) return m.reply('《✧》 No se pudo descargar el *video*, intenta más tarde.')
-        const videoBuffer = await getBuffer(videoData.url)
-        await client.sendMessage(m.chat, { video: videoBuffer, caption: `✨ ${title}`, mimetype: 'video/mp4' }, { quoted: m })
+        if (!videoData?.url) return m.reply('《✧》 No se pudo obtener el *video*.')
+        
+        // OPTIMIZACIÓN: Enviamos la URL directamente, no el Buffer
+        await client.sendMessage(m.chat, { 
+            video: { url: videoData.url }, 
+            caption: `✨ ${title}`, 
+            mimetype: 'video/mp4' 
+        }, { quoted: m })
+
       } else {
-        // Lógica de Audio
         const audioData = await getAudioFromApis(url)
-        if (!audioData?.url) return m.reply('《✧》 No se pudo descargar el *audio*, intenta más tarde.')
-        const audioBuffer = await getBuffer(audioData.url)
-        await client.sendMessage(m.chat, { audio: audioBuffer, fileName: `${title || 'audio'}.mp3`, mimetype: 'audio/mpeg' }, { quoted: m })
+        if (!audioData?.url) return m.reply('《✧》 No se pudo obtener el *audio*.')
+        
+        // OPTIMIZACIÓN: Enviamos la URL directamente, no el Buffer
+        await client.sendMessage(m.chat, { 
+            audio: { url: audioData.url }, 
+            fileName: `${title || 'audio'}.mp3`, 
+            mimetype: 'audio/mpeg' 
+        }, { quoted: m })
       }
 
     } catch (e) {
@@ -62,13 +71,13 @@ export default {
   }
 }
 
+// ... (Las funciones getAudioFromApis y getVideoFromApis se mantienen igual)
 async function getAudioFromApis(url) {
   const apis = [
     { api: 'Delirius', endpoint: `https://api.delirius.store/download/ytmp3v2?url=${encodeURIComponent(url)}`, extractor: res => res.success ? res.data.download : null },
     { api: 'Axi', endpoint: `${global.APIs.axi.url}/down/ytaudio?url=${encodeURIComponent(url)}`, extractor: res => res?.resultado?.url_dl },    
     { api: 'Stellar', endpoint: `${global.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp3&key=${global.APIs.stellar.key}`, extractor: res => res.result?.download }
   ]
-
   for (const { api, endpoint, extractor } of apis) {
     try {
       const res = await fetch(endpoint).then(r => r.json())
@@ -84,7 +93,6 @@ async function getVideoFromApis(url) {
     { api: 'Delirius', endpoint: `https://api.delirius.store/download/ytmp4?url=${encodeURIComponent(url)}`, extractor: res => res.status ? res.data.download : null },
     { api: 'Stellar', endpoint: `${global.APIs.stellar.url}/dl/ytdl?url=${encodeURIComponent(url)}&format=mp4&key=${global.APIs.stellar.key}`, extractor: res => res.result?.download }
   ]
-
   for (const { api, endpoint, extractor } of apis) {
     try {
       const res = await fetch(endpoint).then(r => r.json())
