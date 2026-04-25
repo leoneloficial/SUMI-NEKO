@@ -16,7 +16,7 @@ function initDB(m, client) {
   settings.currency ??= 'Yenes'
   settings.namebot ??= 'sumi'
   settings.botname ??= 'sumi bot'  
-  settings.owner ??= ''
+  settings.owner ??= '𓆩‌۫᷼ ִֶָღܾ݉͢𝕷͢𝖊𝖔፝֟፝֟፝֟፝֟፝֟፝֟𝖓𝖊𝖑ܾ݉ ִֶָ𓆪‌‹࣭݊𓂃ⷪ ִֶָ ᷫ‹ ⷭ.࣭𓆩‌۫᷼Ⴕ۫͜𓆪‌'
 
   const user = global.db.data.users[m.sender] ||= {}
   user.name ??= m.pushName
