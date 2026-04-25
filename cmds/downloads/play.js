@@ -2,7 +2,7 @@ import fetch from 'node-fetch'
 import yts from 'yt-search'
 
 export default {
-  command: ['play', 'yta', 'ytmp3', 'play2', 'ytv', 'ytmp4', 'playaudio', 'mp4'],
+  command: ['play', 'play2', 'yta', 'ytmp3', 'ytv', 'ytmp4', 'playaudio', 'mp4'],
   category: 'downloader',
   run: async (client, m, { args, command, text }) => {
     let query = text || args.join(" ")
@@ -22,6 +22,7 @@ export default {
       if (!result) return m.reply('《✧》 No se encontraron resultados.')
 
       const { title, thumbnail, timestamp, views, url, author } = result
+      const isAudio = /play$|yta|ytmp3|playaudio/i.test(command)
 
       const info = `
 🌸 *𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 𝙳𝚘𝚠𝚗𝚕𝚘𝚊𝚍𝚎𝚛* 🌸
@@ -32,6 +33,7 @@ export default {
 ⏳ *𝙳𝚄𝚁𝙰𝙲𝙸𝙾𝙽:* ${timestamp}
 👁️ *𝚅𝙸𝚂𝚃𝙰𝚂:* ${views.toLocaleString()}
 🔗 *𝙻𝙸𝙽𝙺:* ${url}
+📂 *𝚃𝙸𝙿𝙾:* ${isAudio ? 'Audio (MP3)' : 'Video (MP4)'}
 
 ─── ･ ｡ﾟ☆: *.☽ .* :☆ﾟ. ───
 > ✨ *¡𝐏𝐫𝐨𝐜𝐞𝐬𝐚𝐧𝐝𝐨 𝐭𝐮 𝐚𝐫𝐜𝐡𝐢𝐯𝐨, 𝐞𝐬𝐩𝐞𝐫𝐚!*`.trim()
@@ -42,22 +44,23 @@ export default {
         footer: "🌸 𝙻𝚎𝚘𝚗𝚎𝚕 𝚢 𝚂𝚞𝚖𝚒 🌸" 
       }, { quoted: m })
 
-      const isAudio = /play|yta|ytmp3|playaudio/i.test(command)
-      const data = await getYouTubeMedia(url, isAudio)
-      
-      if (!data || !data.download) {
-        throw new Error('No se pudo obtener el enlace de descarga.')
-      }
-
       if (isAudio) {
+        const res = await fetch(`https://api.delirius.store/download/ytmp3v2?url=${encodeURIComponent(url)}`)
+        const json = await res.json()
+        if (!json.success || !json.data?.download) throw new Error('API Delirius (MP3) no disponible.')
+
         await client.sendMessage(m.chat, { 
-          audio: { url: data.download }, 
+          audio: { url: json.data.download }, 
           fileName: `${title}.mp3`, 
           mimetype: 'audio/mpeg' 
         }, { quoted: m })
       } else {
+        const res = await fetch(`https://api.delirius.store/download/ytmp4?url=${encodeURIComponent(url)}`)
+        const json = await res.json()
+        if (!json.status || !json.data?.download) throw new Error('API Delirius (MP4) no disponible.')
+
         await client.sendMessage(m.chat, { 
-          video: { url: data.download }, 
+          video: { url: json.data.download }, 
           caption: `🌸 *Aquí tienes tu video*\n> ✨ ${title}`,
           mimetype: 'video/mp4',
           fileName: `${title}.mp4` 
@@ -71,32 +74,4 @@ export default {
       await m.reply(`> Ocurrió un error inesperado.\n> [Error: *${e.message}*]`)
     }
   }
-}
-
-async function getYouTubeMedia(url, isAudio) {
-  const apis = [
-    { 
-      endpoint: `https://api.delirius.store/download/${isAudio ? 'ytmp3v2' : 'ytmp4'}?url=${encodeURIComponent(url)}`, 
-      extractor: res => {
-        if (isAudio) {
-          return res.success && res.data?.download ? { download: res.data.download } : null
-        } else {
-          return res.status && res.data?.download ? { download: res.data.download } : null
-        }
-      }
-    }
-  ]
-
-  for (const { endpoint, extractor } of apis) {
-    try {
-      const response = await fetch(endpoint, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36' }
-      })
-      const res = await response.json()
-      const result = extractor(res)
-      if (result) return result
-    } catch (err) { }
-    await new Promise(r => setTimeout(r, 500))
-  }
-  return null
 }
