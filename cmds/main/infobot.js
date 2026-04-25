@@ -91,7 +91,7 @@ await client.sendMessage(m.chat, banner.includes('.mp4') || banner.includes('.we
               },
               externalAdReply: {
                 title: botname,
-                body: `${namebot}, mᥲძᥱ ᥕі𝗍һ ᑲᥡ ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜`,
+                body: `${namebot}, mᥲძᥱ ᥕі𝗍һ ᑲᥡ 𓆩‌۫᷼ ִֶָღܾ݉͢𝕷͢𝖊𝖔፝֟፝֟፝֟፝֟፝֟፝֟𝖓𝖊𝖑ܾ݉ ִֶָ𓆪‌‹࣭݊𓂃ⷪ ִֶָ ᷫ‹ ⷭ.࣭𓆩‌۫᷼Ⴕ۫͜𓆪‌`,
                 showAdAttribution: false,
                 thumbnailUrl: banner,
                 mediaType: 1,
