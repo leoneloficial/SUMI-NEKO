@@ -1,13 +1,12 @@
 export const bodyMenu = `> 𖧧 ¡Hola! *@$sender*, Soy *$namebot*, Aquí tienes la lista de comandos$cat
 
 ╭┈ࠢ͜┅ࠦ͜͜╾݊͜─ؕ͜─ׄ͜─֬͜─֟͜─֫͜─ׄ͜─ؕ͜─݊͜┈ࠦ͜┅ࠡ͜͜┈࠭͜͜۰۰͜۰
-│✿ *ᴅᴇᴠᴇʟᴏᴘᴇʀ ::* $owner
 │ꕥ *ᴛʏᴘᴇ ::* $botType
 │⸙ *ᴠᴇʀsɪᴏɴ ::* ^3.0 - Latest
 │⚘ *sʏsᴛᴇᴍ/ᴏᴘʀ ::* $device
 │○ *ᴛɪᴍᴇ ::* $tiempo, $tempo
 │𓏸 *ᴜsᴇʀs ::* $users
-│○ *ᴜʀʟ ::* $link
+│○ *ᴜʀʟ ::https://whatsapp.com/channel/0029Vagdmfv1SWt5nfdR4z3w
 ╰ׅ┈ࠢ͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴ ⋱࣭ ᩴ  ⋮֔   ᩴ ⋰╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜┈ࠢ͜╯ׅ
 > Vincula un *Socket* con tu número utilizando *$prefixqr* o *$prefixcode*.
 ‧꒷︶꒷꒥꒷‧₊˚꒷︶꒷꒥꒷︶꒷˚₊‧꒷꒥꒷︶꒷‧`
